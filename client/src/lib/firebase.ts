@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 if (!import.meta.env.VITE_FIREBASE_API_KEY || 
@@ -56,6 +56,15 @@ export const signInWithEmail = async (email: string, password: string) => {
     }
   }
 };
+
+export const signOutUser = async () => {
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.error("Sign out error:", error);
+    throw new Error(`Failed to sign out: ${error.message}`);
+  }
+}
 
 // Google authentication
 export const signInWithGoogle = async () => {

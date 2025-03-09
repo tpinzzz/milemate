@@ -1,6 +1,5 @@
-
 import { useState } from "react";
-import { signUpWithEmail, signInWithEmail } from "@/lib/firebase";
+import { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -19,9 +18,9 @@ export default function EmailPasswordAuth() {
 
     try {
       if (isSignUp) {
-        await signUpWithEmail(email, password);
+        await createUserWithEmailAndPassword(auth, email, password);
       } else {
-        await signInWithEmail(email, password);
+        await signInWithEmailAndPassword(auth, email, password);
       }
     } catch (err: any) {
       setError(err.message);
