@@ -59,6 +59,13 @@ export const signOutUser = async () => {
 // Google authentication
 export const signInWithGoogle = async () => {
   const provider = new GoogleAuthProvider();
+  // Add scopes if needed
+  provider.addScope('profile');
+  provider.addScope('email');
+  // Set custom parameters
+  provider.setCustomParameters({
+    prompt: 'select_account'
+  });
   try {
     const result = await signInWithPopup(auth, provider);
     return result.user;
