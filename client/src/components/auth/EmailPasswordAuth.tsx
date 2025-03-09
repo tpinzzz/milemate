@@ -1,82 +1,75 @@
 
 import { useState } from "react";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { signUpWithEmail, signInWithEmail } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
 
 export default function EmailPasswordAuth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setIsLoading(true);
+    setError(null);
+    setLoading(true);
 
     try {
-      if (isRegistering) {
-        await createUserWithEmailAndPassword(auth, email, password);
+      if (isSignUp) {
+        await signUpWithEmail(email, password);
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        await signInWithEmail(email, password);
       }
-    } catch (error: any) {
-      console.error("Authentication error:", error);
-      setError(error.message || "Authentication failed");
+    } catch (err: any) {
+      setError(err.message);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="w-full space-y-4">
-      <form onSubmit={handleAuth} className="space-y-3">
-        <Input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <Input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={6}
-        />
-
+    <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <Input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={6}
+          />
+        </div>
         {error && (
           <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-
-        <Button 
-          type="submit" 
-          className="w-full" 
-          disabled={isLoading}
-        >
-          {isLoading ? "Processing..." : isRegistering ? "Sign Up" : "Sign In"}
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? "Loading..." : isSignUp ? "Sign Up" : "Sign In"}
         </Button>
       </form>
-
       <div className="text-center">
-        <Button 
-          variant="link" 
-          onClick={() => setIsRegistering(!isRegistering)}
+        <Button
+          variant="link"
+          onClick={() => setIsSignUp(!isSignUp)}
           className="text-sm"
         >
-          {isRegistering 
-            ? "Already have an account? Sign in" 
-            : "Don't have an account? Sign up"}
+          {isSignUp
+            ? "Already have an account? Sign In"
+            : "Don't have an account? Sign Up"}
         </Button>
       </div>
     </div>

@@ -1,5 +1,6 @@
+
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 if (!import.meta.env.VITE_FIREBASE_API_KEY || 
@@ -39,13 +40,7 @@ export const signInWithGoogle = async () => {
       message: error.message,
       customData: error.customData
     });
-    throw error;
-  }
-};
-
-// Make sure to enable Email/Password authentication in your Firebase console
-// Firebase Console -> Authentication -> Sign-in method -> Email/Password -> Enable
-
+    
     if (error.code === 'auth/popup-blocked') {
       throw new Error("Pop-up was blocked. Please allow pop-ups for this site.");
     } else if (error.code === 'auth/cancelled-popup-request') {
@@ -54,6 +49,37 @@ export const signInWithGoogle = async () => {
       throw new Error("This domain is not authorized for sign-in. Please contact the administrator.");
     } else {
       throw new Error(`Failed to sign in with Google: ${error.message}`);
+    }
+  }
+};
+
+// Email/Password authentication functions
+export const signUpWithEmail = async (email: string, password: string) => {
+  try {
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    return result.user;
+  } catch (error: any) {
+    console.error("Email signup error:", error);
+    if (error.code === 'auth/email-already-in-use') {
+      throw new Error("Email already in use. Try logging in instead.");
+    } else if (error.code === 'auth/weak-password') {
+      throw new Error("Password is too weak. Please use a stronger password.");
+    } else {
+      throw new Error(`Failed to sign up: ${error.message}`);
+    }
+  }
+};
+
+export const signInWithEmail = async (email: string, password: string) => {
+  try {
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    return result.user;
+  } catch (error: any) {
+    console.error("Email login error:", error);
+    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+      throw new Error("Invalid email or password.");
+    } else {
+      throw new Error(`Failed to log in: ${error.message}`);
     }
   }
 };
