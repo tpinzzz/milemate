@@ -25,8 +25,16 @@ export const signInWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, provider);
     return result.user;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error signing in with Google:", error);
-    throw error;
+    if (error.code === 'auth/popup-blocked') {
+      throw new Error("Pop-up was blocked. Please allow pop-ups for this site.");
+    } else if (error.code === 'auth/cancelled-popup-request') {
+      throw new Error("Sign-in was cancelled.");
+    } else if (error.code === 'auth/unauthorized-domain') {
+      throw new Error("This domain is not authorized for sign-in. Please contact the administrator.");
+    } else {
+      throw new Error("Failed to sign in with Google. Please try again.");
+    }
   }
 };

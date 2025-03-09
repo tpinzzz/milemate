@@ -13,7 +13,7 @@ export default function LoginButton() {
       toast({
         variant: "destructive",
         title: "Authentication failed",
-        description: "Could not sign in with Google. Please try again.",
+        description: error instanceof Error ? error.message : "Could not sign in with Google. Please try again.",
       });
     }
   };
