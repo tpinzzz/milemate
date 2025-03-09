@@ -5,7 +5,7 @@ import DashboardCard from "@/components/layout/DashboardCard";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { MapPin, Car } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function Dashboard() {
   const { showOnboarding, completeOnboarding } = useOnboarding();
@@ -14,6 +14,9 @@ export default function Dashboard() {
     <AuthCheck>
       <Dialog open={showOnboarding} onOpenChange={(open) => !open && completeOnboarding()}>
         <DialogContent className="max-w-lg p-0">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Welcome to Mileage Tracker</DialogTitle>
+          </DialogHeader>
           <OnboardingFlow />
         </DialogContent>
       </Dialog>
