@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, calculateTripDetails, formatMileage } from "@/lib/utils";
 import { insertTripSchema, type InsertTrip } from "@shared/schema";
 import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -23,10 +24,10 @@ export default function TripForm() {
     resolver: zodResolver(insertTripSchema),
     defaultValues: {
       startMileage: 0,
-      endMileage: 0,
       tripDate: new Date(),
       purpose: "Business",
       userId: auth.currentUser?.uid || "",
+      status: "in_progress",
     },
   });
 
@@ -34,13 +35,28 @@ export default function TripForm() {
     mutationFn: async (data: InsertTrip) => {
       await apiRequest("POST", "/api/trips", data);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
+
+      // Show completion message with tax deduction if ending trip
+      if (variables.status === "completed" && variables.endMileage) {
+        const { miles, deduction } = calculateTripDetails(
+          Number(variables.startMileage),
+          Number(variables.endMileage)
+        );
+
+        toast({
+          title: "Trip Completed",
+          description: (
+            <div className="mt-2 space-y-2">
+              <p>Miles driven: {formatMileage(miles)}</p>
+              <p>Estimated tax deduction: ${deduction.toFixed(2)}</p>
+            </div>
+          ),
+        });
+      }
+
       form.reset();
-      toast({
-        title: "Trip logged successfully",
-        description: "Your trip has been saved to the database.",
-      });
     },
     onError: () => {
       toast({
@@ -51,9 +67,15 @@ export default function TripForm() {
     },
   });
 
+  const onSubmit = (data: InsertTrip) => {
+    mutation.mutate(data);
+  };
+
+  const isInProgress = form.watch("status") === "in_progress";
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
@@ -62,26 +84,39 @@ export default function TripForm() {
               <FormItem>
                 <FormLabel>Start Mileage</FormLabel>
                 <FormControl>
-                  <Input type="number" step="0.1" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                  <Input 
+                    type="number" 
+                    step="0.1" 
+                    {...field} 
+                    onChange={e => field.onChange(parseFloat(e.target.value))}
+                    disabled={!isInProgress} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="endMileage"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>End Mileage</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.1" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {!isInProgress && (
+            <FormField
+              control={form.control}
+              name="endMileage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>End Mileage</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      step="0.1" 
+                      {...field} 
+                      onChange={e => field.onChange(parseFloat(e.target.value))} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -149,8 +184,29 @@ export default function TripForm() {
           />
         </div>
 
-        <Button type="submit" className="w-full" disabled={mutation.isPending}>
-          {mutation.isPending ? "Saving..." : "Log Trip"}
+        <FormField
+          control={form.control}
+          name="status"
+          render={({ field }) => (
+            <input type="hidden" {...field} />
+          )}
+        />
+
+        <Button 
+          type="submit" 
+          className="w-full" 
+          disabled={mutation.isPending}
+          onClick={() => {
+            if (isInProgress) {
+              form.setValue("status", "completed");
+            }
+          }}
+        >
+          {mutation.isPending 
+            ? "Saving..." 
+            : isInProgress 
+              ? "Start Trip" 
+              : "End Trip"}
         </Button>
       </form>
     </Form>

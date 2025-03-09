@@ -6,9 +6,10 @@ export const trips = pgTable("trips", {
   id: serial("id").primaryKey(),
   userId: text("user_id").notNull(),
   startMileage: numeric("start_mileage").notNull(),
-  endMileage: numeric("end_mileage").notNull(),
+  endMileage: numeric("end_mileage"),
   tripDate: timestamp("trip_date").notNull(),
   purpose: text("purpose").notNull(),
+  status: text("status").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -19,12 +20,14 @@ export const insertTripSchema = createInsertSchema(trips)
     endMileage: true,
     tripDate: true,
     purpose: true,
+    status: true,
   })
   .extend({
     startMileage: z.number().positive(),
-    endMileage: z.number().positive(),
+    endMileage: z.number().positive().optional(),
     tripDate: z.coerce.date(),
     purpose: z.enum(["Business", "Personal"]),
+    status: z.enum(["in_progress", "completed"]),
   });
 
 export type InsertTrip = z.infer<typeof insertTripSchema>;

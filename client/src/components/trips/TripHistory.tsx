@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
-import { formatMileage, generateCsvData } from "@/lib/utils";
+import { formatMileage, MILEAGE_RATE, generateCsvData } from "@/lib/utils"; // Added MILEAGE_RATE import
 import { type Trip } from "@shared/schema";
 
 export default function TripHistory() {
@@ -19,12 +19,12 @@ export default function TripHistory() {
 
   const handleExport = () => {
     if (!trips) return;
-    
+
     const csvContent = generateCsvData(trips);
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    
+
     link.setAttribute("href", url);
     link.setAttribute("download", `mileage_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
@@ -56,24 +56,39 @@ export default function TripHistory() {
               <TableHead>End</TableHead>
               <TableHead>Miles</TableHead>
               <TableHead>Purpose</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Tax Deduction</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {trips?.map((trip) => (
-              <TableRow key={trip.id}>
-                <TableCell>
-                  {new Date(trip.tripDate).toLocaleDateString()}
-                </TableCell>
-                <TableCell>{formatMileage(Number(trip.startMileage))}</TableCell>
-                <TableCell>{formatMileage(Number(trip.endMileage))}</TableCell>
-                <TableCell>
-                  {formatMileage(
-                    Number(trip.endMileage) - Number(trip.startMileage)
-                  )}
-                </TableCell>
-                <TableCell>{trip.purpose}</TableCell>
-              </TableRow>
-            ))}
+            {trips?.map((trip) => {
+              const miles = trip.endMileage 
+                ? Number(trip.endMileage) - Number(trip.startMileage)
+                : 0;
+              const deduction = miles * MILEAGE_RATE;
+
+              return (
+                <TableRow key={trip.id}>
+                  <TableCell>
+                    {new Date(trip.tripDate).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>{formatMileage(Number(trip.startMileage))}</TableCell>
+                  <TableCell>
+                    {trip.endMileage ? formatMileage(Number(trip.endMileage)) : "-"}
+                  </TableCell>
+                  <TableCell>
+                    {trip.endMileage ? formatMileage(miles) : "-"}
+                  </TableCell>
+                  <TableCell>{trip.purpose}</TableCell>
+                  <TableCell>
+                    {trip.status === "in_progress" ? "In Progress" : "Completed"}
+                  </TableCell>
+                  <TableCell>
+                    {trip.endMileage ? `$${deduction.toFixed(2)}` : "-"}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
