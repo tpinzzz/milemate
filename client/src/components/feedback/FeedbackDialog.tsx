@@ -34,8 +34,19 @@ export default function FeedbackDialog({ open, onOpenChange }: FeedbackDialogPro
       const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
       const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
+      // Log the presence of environment variables (not their values)
+      console.log('Environment variables check:', {
+        hasServiceId: !!serviceId,
+        hasTemplateId: !!templateId,
+        hasPublicKey: !!publicKey
+      });
+
       if (!serviceId || !templateId || !publicKey) {
-        throw new Error("EmailJS configuration is missing");
+        throw new Error(`EmailJS configuration is missing: ${[
+          !serviceId && 'Service ID',
+          !templateId && 'Template ID',
+          !publicKey && 'Public Key'
+        ].filter(Boolean).join(', ')}`);
       }
 
       await emailjs.send(
