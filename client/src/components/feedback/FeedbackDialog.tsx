@@ -34,11 +34,11 @@ export default function FeedbackDialog({ open, onOpenChange }: FeedbackDialogPro
       const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
       const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
-      // Log the presence of environment variables (not their values)
-      console.log('Environment variables check:', {
-        hasServiceId: !!serviceId,
-        hasTemplateId: !!templateId,
-        hasPublicKey: !!publicKey
+      // Log the environment variables (with masked values for security)
+      console.log('Environment variables:', {
+        serviceId: serviceId ? "set" : "missing",
+        templateId: templateId ? "set" : "missing",
+        publicKey: publicKey ? "set" : "missing"
       });
 
       if (!serviceId || !templateId || !publicKey) {
@@ -49,16 +49,20 @@ export default function FeedbackDialog({ open, onOpenChange }: FeedbackDialogPro
         ].filter(Boolean).join(', ')}`);
       }
 
-      await emailjs.send(
+      // Use init before sending to ensure the public key is properly set
+      emailjs.init(publicKey);
+      
+      const response = await emailjs.send(
         serviceId,
         templateId,
         {
           to_email: "tyler@atohmsllc.com",
           from_email: user?.email || "anonymous@user.com",
           message: feedback,
-        },
-        publicKey
+        }
       );
+      
+      console.log("EmailJS response:", response);
 
       toast({
         title: "Feedback sent",
@@ -68,18 +72,30 @@ export default function FeedbackDialog({ open, onOpenChange }: FeedbackDialogPro
       onOpenChange(false);
     } catch (error) {
       console.error("Error sending feedback:", error);
+      
+      // More detailed error handling
       if (error instanceof Error) {
         toast({
           variant: "destructive",
-          title: "Error",
+          title: "Error sending feedback",
           description: error.message,
         });
+      } else if (typeof error === 'object' && error !== null) {
+        // Handle EmailJS error response
+        const errorObj = error as any;
+        const errorMessage = errorObj.text || JSON.stringify(error);
+        toast({
+          variant: "destructive",
+          title: "EmailJS Error",
+          description: errorMessage,
+        });
+        console.error("EmailJS error details:", errorObj);
       } else {
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "An unexpected error occurred. Please try again later.",
-          });
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "An unexpected error occurred. Please try again later.",
+        });
       }
     } finally {
       setIsSending(false);
