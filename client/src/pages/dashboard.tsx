@@ -2,14 +2,25 @@ import AuthCheck from "@/components/auth/AuthCheck";
 import TripForm from "@/components/trips/TripForm";
 import TripHistory from "@/components/trips/TripHistory";
 import DashboardCard from "@/components/layout/DashboardCard";
+import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
+import { useOnboarding } from "@/hooks/useOnboarding";
 import { MapPin, Car } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 export default function Dashboard() {
+  const { showOnboarding, completeOnboarding } = useOnboarding();
+
   return (
     <AuthCheck>
+      <Dialog open={showOnboarding} onOpenChange={(open) => !open && completeOnboarding()}>
+        <DialogContent className="max-w-lg p-0">
+          <OnboardingFlow />
+        </DialogContent>
+      </Dialog>
+
       <div className="container py-8">
         <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
-        
+
         <div className="grid gap-8">
           <DashboardCard title="Log New Trip">
             <TripForm />
