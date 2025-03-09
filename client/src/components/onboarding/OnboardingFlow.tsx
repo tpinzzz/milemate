@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
 import { DollarSign, Car, Clock, CheckCircle2 } from "lucide-react";
+import { useOnboarding } from "@/hooks/useOnboarding";
 
 interface OnboardingStepProps {
   title: string;
@@ -19,12 +20,15 @@ const OnboardingStep = ({ title, children, icon }: OnboardingStepProps) => (
 );
 
 export default function OnboardingFlow() {
+  const { completeOnboarding } = useOnboarding();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
       setCurrentStep(prev => prev + 1);
+    } else {
+      completeOnboarding();
     }
   };
 
