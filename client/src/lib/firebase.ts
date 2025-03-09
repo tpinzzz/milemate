@@ -1,4 +1,3 @@
-
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
@@ -26,32 +25,6 @@ console.log("Initializing Firebase with config:", {
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const firestore = getFirestore(app);
-
-export const signInWithGoogle = async () => {
-  const provider = new GoogleAuthProvider();
-  try {
-    console.log("Attempting Google sign in...");
-    const result = await signInWithPopup(auth, provider);
-    console.log("Sign in successful:", result.user.uid);
-    return result.user;
-  } catch (error: any) {
-    console.error("Detailed sign-in error:", {
-      code: error.code,
-      message: error.message,
-      customData: error.customData
-    });
-    
-    if (error.code === 'auth/popup-blocked') {
-      throw new Error("Pop-up was blocked. Please allow pop-ups for this site.");
-    } else if (error.code === 'auth/cancelled-popup-request') {
-      throw new Error("Sign-in was cancelled.");
-    } else if (error.code === 'auth/unauthorized-domain') {
-      throw new Error("This domain is not authorized for sign-in. Please contact the administrator.");
-    } else {
-      throw new Error(`Failed to sign in with Google: ${error.message}`);
-    }
-  }
-};
 
 // Email/Password authentication functions
 export const signUpWithEmail = async (email: string, password: string) => {
@@ -81,5 +54,17 @@ export const signInWithEmail = async (email: string, password: string) => {
     } else {
       throw new Error(`Failed to log in: ${error.message}`);
     }
+  }
+};
+
+// Google authentication
+export const signInWithGoogle = async () => {
+  const provider = new GoogleAuthProvider();
+  try {
+    const result = await signInWithPopup(auth, provider);
+    return result.user;
+  } catch (error: any) {
+    console.error("Google login error:", error);
+    throw new Error(`Failed to sign in with Google: ${error.message}`);
   }
 };
