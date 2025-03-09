@@ -1,28 +1,20 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { initializeApp } from "firebase/app";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCKWMTRKLwE2YqChq9j2Py7jN--wJn73cY",
-  authDomain: "mileage-tracker-demo.firebaseapp.com",
-  projectId: "mileage-tracker-demo",
-  storageBucket: "mileage-tracker-demo.appspot.com",
-  messagingSenderId: "991101916732",
-  appId: "1:991101916732:web:3a49f7e8ca6c9d1add2c59"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+export const auth = getAuth(app);
 export const firestore = getFirestore(app);
-
-
-export { 
-  auth, 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword 
-};
+export { signInWithEmailAndPassword, createUserWithEmailAndPassword };
 
 // Email/Password authentication functions
 export const signUpWithEmail = async (email: string, password: string) => {
