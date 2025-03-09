@@ -9,12 +9,21 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
-import { formatMileage, MILEAGE_RATE, generateCsvData } from "@/lib/utils"; // Added MILEAGE_RATE import
+import { formatMileage, MILEAGE_RATE, generateCsvData } from "@/lib/utils";
 import { type Trip } from "@shared/schema";
+import { auth } from "@/lib/firebase";
 
 export default function TripHistory() {
   const { data: trips, isLoading } = useQuery<Trip[]>({
-    queryKey: ["/api/trips"],
+    queryKey: ["/api/trips", auth.currentUser?.uid],
+    queryFn: async () => {
+      const response = await fetch(`/api/trips?userId=${auth.currentUser?.uid}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch trips");
+      }
+      return response.json();
+    },
+    enabled: !!auth.currentUser?.uid,
   });
 
   const handleExport = () => {

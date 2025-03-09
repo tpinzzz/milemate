@@ -10,24 +10,39 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn, calculateTripDetails, formatMileage } from "@/lib/utils";
-import { insertTripSchema, type InsertTrip } from "@shared/schema";
+import { insertTripSchema, type InsertTrip, type Trip } from "@shared/schema";
 import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function TripForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Query for any in-progress trip for the current user
+  const { data: trips } = useQuery<Trip[]>({
+    queryKey: ["/api/trips", auth.currentUser?.uid],
+    queryFn: async () => {
+      const response = await fetch(`/api/trips?userId=${auth.currentUser?.uid}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch trips");
+      }
+      return response.json();
+    },
+    enabled: !!auth.currentUser?.uid,
+  });
+
+  const inProgressTrip = trips?.find(trip => trip.status === "in_progress");
+
   const form = useForm<InsertTrip>({
     resolver: zodResolver(insertTripSchema),
     defaultValues: {
-      startMileage: 0,
-      tripDate: new Date(),
-      purpose: "Business",
+      startMileage: inProgressTrip?.startMileage ? Number(inProgressTrip.startMileage) : 0,
+      tripDate: inProgressTrip?.tripDate ? new Date(inProgressTrip.tripDate) : new Date(),
+      purpose: inProgressTrip?.purpose || "Business",
       userId: auth.currentUser?.uid || "",
-      status: "in_progress",
+      status: inProgressTrip ? "completed" : "in_progress",
     },
   });
 
@@ -64,7 +79,13 @@ export default function TripForm() {
 
       // Only reset form if completing the trip
       if (variables.status === "completed") {
-        form.reset();
+        form.reset({
+          startMileage: 0,
+          tripDate: new Date(),
+          purpose: "Business",
+          userId: auth.currentUser?.uid || "",
+          status: "in_progress",
+        });
       }
     },
     onError: () => {
@@ -80,9 +101,9 @@ export default function TripForm() {
     // Ensure userId is set from current auth state
     data.userId = auth.currentUser?.uid || "";
 
-    if (!isInProgress) {
+    if (inProgressTrip) {
       // If ending trip, validate end mileage
-      if (!data.endMileage || data.endMileage <= data.startMileage) {
+      if (!data.endMileage || data.endMileage <= Number(inProgressTrip.startMileage)) {
         toast({
           variant: "destructive",
           title: "Invalid end mileage",
@@ -91,12 +112,12 @@ export default function TripForm() {
         return;
       }
       data.status = "completed";
+      // Keep the original start mileage
+      data.startMileage = Number(inProgressTrip.startMileage);
     }
 
     mutation.mutate(data);
   };
-
-  const isInProgress = form.watch("status") === "in_progress";
 
   return (
     <Form {...form}>
@@ -114,7 +135,7 @@ export default function TripForm() {
                     step="0.1" 
                     {...field} 
                     onChange={e => field.onChange(parseFloat(e.target.value))}
-                    disabled={!isInProgress} 
+                    disabled={!!inProgressTrip} 
                   />
                 </FormControl>
                 <FormMessage />
@@ -122,7 +143,7 @@ export default function TripForm() {
             )}
           />
 
-          {!isInProgress && (
+          {inProgressTrip && (
             <FormField
               control={form.control}
               name="endMileage"
@@ -224,9 +245,9 @@ export default function TripForm() {
         >
           {mutation.isPending 
             ? "Saving..." 
-            : isInProgress 
-              ? "Start Trip" 
-              : "End Trip"}
+            : inProgressTrip 
+              ? "End Trip" 
+              : "Start Trip"}
         </Button>
       </form>
     </Form>
