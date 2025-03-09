@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,7 +33,7 @@ export function EmailPasswordAuth() {
   const onSubmit = async (data: AuthFormValues) => {
     setIsLoading(true);
     setAuthError(null);
-    
+
     try {
       if (activeTab === "login") {
         await signInWithEmailAndPassword(auth, data.email, data.password);
@@ -52,8 +51,8 @@ export function EmailPasswordAuth() {
     } catch (error) {
       console.error(error);
       setAuthError(
-        error instanceof Error 
-          ? error.message 
+        error instanceof Error
+          ? error.message
           : "An unknown error occurred"
       );
     } finally {

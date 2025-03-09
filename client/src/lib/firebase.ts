@@ -1,6 +1,7 @@
-import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { initializeApp } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { getFirestore } from "firebase/firestore";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCKWMTRKLwE2YqChq9j2Py7jN--wJn73cY",
@@ -16,6 +17,12 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 export const firestore = getFirestore(app);
 
+
+export { 
+  auth, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword 
+};
 
 // Email/Password authentication functions
 export const signUpWithEmail = async (email: string, password: string) => {
@@ -68,5 +75,3 @@ export const signInWithGoogle = async () => {
     throw new Error(`Failed to sign in with Google: ${error.message}`);
   }
 };
-
-export { auth, createUserWithEmailAndPassword, signInWithEmailAndPassword };
