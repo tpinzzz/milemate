@@ -54,9 +54,18 @@ export default function TripForm() {
             </div>
           ),
         });
+      } else {
+        // Show message for starting trip
+        toast({
+          title: "Trip Started",
+          description: "Your trip has been started. Don't forget to end it later!",
+        });
       }
 
-      form.reset();
+      // Only reset form if completing the trip
+      if (variables.status === "completed") {
+        form.reset();
+      }
     },
     onError: () => {
       toast({
@@ -68,6 +77,22 @@ export default function TripForm() {
   });
 
   const onSubmit = (data: InsertTrip) => {
+    // Ensure userId is set from current auth state
+    data.userId = auth.currentUser?.uid || "";
+
+    if (!isInProgress) {
+      // If ending trip, validate end mileage
+      if (!data.endMileage || data.endMileage <= data.startMileage) {
+        toast({
+          variant: "destructive",
+          title: "Invalid end mileage",
+          description: "End mileage must be greater than start mileage.",
+        });
+        return;
+      }
+      data.status = "completed";
+    }
+
     mutation.mutate(data);
   };
 
@@ -196,11 +221,6 @@ export default function TripForm() {
           type="submit" 
           className="w-full" 
           disabled={mutation.isPending}
-          onClick={() => {
-            if (isInProgress) {
-              form.setValue("status", "completed");
-            }
-          }}
         >
           {mutation.isPending 
             ? "Saving..." 
