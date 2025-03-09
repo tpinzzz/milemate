@@ -2,29 +2,20 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-if (!import.meta.env.VITE_FIREBASE_API_KEY || 
-    !import.meta.env.VITE_FIREBASE_PROJECT_ID || 
-    !import.meta.env.VITE_FIREBASE_APP_ID) {
-  throw new Error("Missing Firebase configuration");
-}
-
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY.trim(),
-  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID.trim()}.firebaseapp.com`,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID.trim(),
-  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID.trim()}.appspot.com`,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID.trim(),
+  apiKey: "AIzaSyCKWMTRKLwE2YqChq9j2Py7jN--wJn73cY",
+  authDomain: "mileage-tracker-demo.firebaseapp.com",
+  projectId: "mileage-tracker-demo",
+  storageBucket: "mileage-tracker-demo.appspot.com",
+  messagingSenderId: "991101916732",
+  appId: "1:991101916732:web:3a49f7e8ca6c9d1add2c59"
 };
 
-// Initialize Firebase with verbose logging
-console.log("Initializing Firebase with config:", {
-  projectId: firebaseConfig.projectId,
-  authDomain: firebaseConfig.authDomain
-});
-
-export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 export const firestore = getFirestore(app);
+
 
 // Email/Password authentication functions
 export const signUpWithEmail = async (email: string, password: string) => {
@@ -64,7 +55,7 @@ export const signOutUser = async () => {
     console.error("Sign out error:", error);
     throw new Error(`Failed to sign out: ${error.message}`);
   }
-}
+};
 
 // Google authentication
 export const signInWithGoogle = async () => {
@@ -77,3 +68,5 @@ export const signInWithGoogle = async () => {
     throw new Error(`Failed to sign in with Google: ${error.message}`);
   }
 };
+
+export { auth, createUserWithEmailAndPassword, signInWithEmailAndPassword };
