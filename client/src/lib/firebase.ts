@@ -39,6 +39,12 @@ export const signInWithGoogle = async () => {
       message: error.message,
       customData: error.customData
     });
+    throw error;
+  }
+};
+
+// Make sure to enable Email/Password authentication in your Firebase console
+// Firebase Console -> Authentication -> Sign-in method -> Email/Password -> Enable
 
     if (error.code === 'auth/popup-blocked') {
       throw new Error("Pop-up was blocked. Please allow pop-ups for this site.");

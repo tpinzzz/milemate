@@ -2,7 +2,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { auth } from "@/lib/firebase";
-import LoginButton from "@/components/auth/LoginButton";
+import AuthForm from "@/components/auth/AuthForm";
 import { Car } from "lucide-react";
 
 export default function Home() {
@@ -39,7 +39,7 @@ export default function Home() {
                 </p>
               </div>
               <div className="space-y-4 w-full max-w-sm">
-                <LoginButton />
+                <AuthForm />
               </div>
             </div>
           </div>
