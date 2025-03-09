@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import emailjs from "@emailjs/browser";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,22 +25,6 @@ export default function FeedbackDialog({ open, onOpenChange }: FeedbackDialogPro
   const { toast } = useToast();
   const [user] = useAuthState(auth);
 
-  // Initialize EmailJS
-  useEffect(() => {
-    const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
-    if (publicKey) {
-      emailjs.init(publicKey);
-    } else {
-      console.error("EmailJS public key is missing");
-    }
-    console.log("Environment variables (without values):", {
-      VITE_EMAILJS_PUBLIC_KEY: "REDACTED",
-      VITE_EMAILJS_SERVICE_ID: "REDACTED",
-      VITE_EMAILJS_TEMPLATE_ID: "REDACTED",
-
-    });
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSending(true);
@@ -48,8 +32,9 @@ export default function FeedbackDialog({ open, onOpenChange }: FeedbackDialogPro
     try {
       const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
       const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
-      if (!serviceId || !templateId) {
+      if (!serviceId || !templateId || !publicKey) {
         throw new Error("EmailJS configuration is missing");
       }
 
@@ -60,7 +45,8 @@ export default function FeedbackDialog({ open, onOpenChange }: FeedbackDialogPro
           to_email: "tyler@atohmsllc.com",
           from_email: user?.email || "anonymous@user.com",
           message: feedback,
-        }
+        },
+        publicKey
       );
 
       toast({
