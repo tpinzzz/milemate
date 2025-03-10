@@ -1,3 +1,16 @@
+
+// Add this function at the top of your file
+export const debugGoogleAuthConfig = () => {
+  const provider = new GoogleAuthProvider();
+  // Log the current redirect URL that Firebase is using
+  console.log("Current redirect URL:", window.location.origin);
+  console.log("Provider settings:", provider);
+  return {
+    redirectUrl: window.location.origin,
+    provider
+  };
+};
+
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
@@ -62,15 +75,34 @@ export const signInWithGoogle = async () => {
   // Add scopes if needed
   provider.addScope('profile');
   provider.addScope('email');
+  
   // Set custom parameters
   provider.setCustomParameters({
     prompt: 'select_account'
   });
+  
+  console.log("Auth attempt with redirect URL:", window.location.origin);
+  
   try {
+    // Try with popup first
     const result = await signInWithPopup(auth, provider);
     return result.user;
   } catch (error: any) {
-    console.error("Google login error:", error);
+    console.error("Google login error details:", {
+      code: error.code,
+      message: error.message,
+      email: error.email,
+      credential: error.credential,
+      customData: error.customData
+    });
+    
+    // If error is related to redirect URI, provide more helpful information
+    if (error.code === 'auth/unauthorized-domain' || error.message.includes('redirect_uri_mismatch')) {
+      console.error("Your domain is not authorized in the Firebase console or Google Cloud Console");
+      console.error("Current domain:", window.location.origin);
+      throw new Error(`Authentication failed: Your application domain (${window.location.origin}) is not authorized for Google authentication. Please add this domain to the authorized domains in the Firebase console and Google Cloud Console.`);
+    }
+    
     throw new Error(`Failed to sign in with Google: ${error.message}`);
   }
 };

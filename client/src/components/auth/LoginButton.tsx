@@ -40,10 +40,13 @@ export default function LoginButton() {
     try {
       await signInWithGoogle();
     } catch (error) {
+      console.error("Login button error:", error);
       toast({
         variant: "destructive",
         title: "Authentication failed",
-        description: error instanceof Error ? error.message : "Could not sign in with Google. Please try again.",
+        description: error instanceof Error 
+          ? error.message 
+          : "Could not sign in with Google. Please try again.",
       });
     }
   };
