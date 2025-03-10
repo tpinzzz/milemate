@@ -11,12 +11,12 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 export default function Dashboard() {
-  const { showOnboarding, completeOnboarding } = useOnboarding();
+  const { showOnboarding } = useOnboarding();
   const [showFeedback, setShowFeedback] = useState(false);
 
   return (
     <AuthCheck>
-      <Dialog open={showOnboarding} onOpenChange={(open) => !open && completeOnboarding()}>
+      <Dialog open={showOnboarding}>
         <DialogContent className="max-w-lg p-0">
           <DialogHeader className="sr-only">
             <DialogTitle>Welcome to Mileage Tracker</DialogTitle>

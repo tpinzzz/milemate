@@ -27,9 +27,11 @@ export default function OnboardingFlow() {
   const handleNext = () => {
     if (currentStep < totalSteps) {
       setCurrentStep(prev => prev + 1);
-    } else {
-      completeOnboarding();
     }
+  };
+
+  const handleComplete = () => {
+    completeOnboarding();
   };
 
   return (
@@ -137,7 +139,7 @@ export default function OnboardingFlow() {
             Next
           </Button>
         ) : (
-          <Button onClick={handleNext} className="w-full">
+          <Button onClick={handleComplete} className="w-full">
             Get Started!
           </Button>
         )}
