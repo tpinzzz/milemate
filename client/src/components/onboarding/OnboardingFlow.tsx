@@ -4,6 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
 import { DollarSign, Car, Clock, CheckCircle2 } from "lucide-react";
 import { useOnboarding } from "@/hooks/useOnboarding";
+import { useLocation } from "wouter";
 
 interface OnboardingStepProps {
   title: string;
@@ -23,6 +24,7 @@ export default function OnboardingFlow() {
   const { completeOnboarding } = useOnboarding();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
+  const [, setLocation] = useLocation();
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
@@ -32,6 +34,7 @@ export default function OnboardingFlow() {
 
   const handleComplete = () => {
     completeOnboarding();
+    setLocation("/dashboard");
   };
 
   return (
