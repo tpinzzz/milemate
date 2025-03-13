@@ -1,11 +1,13 @@
 import AuthCheck from "@/components/auth/AuthCheck";
 import TripForm from "@/components/trips/TripForm";
 import TripHistory from "@/components/trips/TripHistory";
+import TaxDeductionSummary from "@/components/trips/TaxDeductionSummary";
+import QuickActions from "@/components/trips/QuickActions";
 import DashboardCard from "@/components/layout/DashboardCard";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import FeedbackDialog from "@/components/feedback/FeedbackDialog";
 import { useOnboarding } from "@/hooks/useOnboarding";
-import { MapPin, Car, MessageSquare } from "lucide-react";
+import { MapPin, Car, MessageSquare, BarChart } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -45,10 +47,40 @@ export default function Dashboard() {
         </div>
 
         <div className="grid gap-8">
+          {/* Top row: Summary cards */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <TaxDeductionSummary />
+            
+            <DashboardCard 
+              title="Quick Actions" 
+              icon={<Car />}
+            >
+              <QuickActions />
+            </DashboardCard>
+            
+            <DashboardCard 
+              title="Analytics" 
+              icon={<BarChart />}
+            >
+              <div className="p-4 bg-muted rounded-lg text-center">
+                <p className="text-sm text-muted-foreground">
+                  Coming Soon: Trip analytics and insights
+                </p>
+              </div>
+            </DashboardCard>
+          </div>
+
+          {/* Middle row: Main action area */}
           <DashboardCard title="Log New Trip">
             <TripForm />
           </DashboardCard>
 
+          {/* Bottom row: Trip history */}
+          <DashboardCard title="Trip History">
+            <TripHistory />
+          </DashboardCard>
+          
+          {/* Future features */}
           <div className="grid gap-4 md:grid-cols-2">
             <DashboardCard 
               title="GPS Tracking" 
@@ -72,10 +104,6 @@ export default function Dashboard() {
               </div>
             </DashboardCard>
           </div>
-
-          <DashboardCard title="Trip History">
-            <TripHistory />
-          </DashboardCard>
         </div>
       </div>
     </AuthCheck>
