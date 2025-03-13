@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,18 +16,36 @@ export default function QuickActions() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showEndTripDialog, setShowEndTripDialog] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   // Query for any in-progress trip for the current user
-  const { data: trips, isLoading } = useQuery<Trip[]>({
+  const { data: trips, isLoading, refetch } = useQuery<Trip[]>({
     queryKey: ["trips", auth.currentUser?.uid],
     queryFn: async () => {
       if (!auth.currentUser?.uid) throw new Error("No user ID");
-      return getTrips(auth.currentUser.uid);
+      const result = await getTrips(auth.currentUser.uid);
+      console.log("Fetched trips:", result);
+      return result;
     },
     enabled: !!auth.currentUser?.uid,
   });
 
+  // Force a refetch when the component mounts
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  // Find in-progress trip
   const inProgressTrip = trips?.find(trip => trip.status === "in_progress");
+  
+  // Log debug info
+  useEffect(() => {
+    if (trips) {
+      setDebugInfo(`Found ${trips.length} trips, ${inProgressTrip ? "has" : "no"} in-progress trip`);
+      console.log("Trips:", trips);
+      console.log("In-progress trip:", inProgressTrip);
+    }
+  }, [trips, inProgressTrip]);
   
   // Get the last completed trip to suggest a start mileage
   const lastCompletedTrip = trips
@@ -42,6 +60,8 @@ export default function QuickActions() {
       // Get the last completed trip to use its end mileage as the new start mileage
       const startMileage = lastCompletedTrip?.endMileage || 0;
       
+      console.log("Starting trip with mileage:", startMileage);
+      
       return createTrip({
         userId: auth.currentUser.uid,
         startMileage: startMileage,
@@ -52,13 +72,16 @@ export default function QuickActions() {
       });
     },
     onSuccess: () => {
+      console.log("Trip started successfully");
       queryClient.invalidateQueries({ queryKey: ["trips"] });
+      refetch(); // Force a refetch
       toast({
         title: "Trip Started",
         description: "Your trip has been started. Don't forget to end it later!",
       });
     },
     onError: (error) => {
+      console.error("Error starting trip:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to start trip",
@@ -117,8 +140,20 @@ export default function QuickActions() {
 
   const timeElapsed = getTimeElapsed();
 
+  const handleStartTrip = () => {
+    console.log("Start trip button clicked");
+    startTripMutation.mutate();
+  };
+
   return (
     <div className="p-4 space-y-4">
+      {/* Debug info - remove in production */}
+      {debugInfo && (
+        <div className="text-xs text-muted-foreground mb-2">
+          {debugInfo}
+        </div>
+      )}
+      
       {/* Current Trip Status */}
       {inProgressTrip && (
         <Card className="bg-amber-50 border-amber-200 mb-4">
@@ -148,7 +183,7 @@ export default function QuickActions() {
         <Button 
           className="w-full flex justify-between" 
           variant={inProgressTrip ? "outline" : "default"}
-          onClick={() => startTripMutation.mutate()}
+          onClick={handleStartTrip}
           disabled={isLoading || startTripMutation.isPending || !!inProgressTrip}
         >
           <div className="flex items-center">
