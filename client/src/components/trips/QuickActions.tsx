@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { auth } from "@/lib/firebase";
 import { getTrips, createTrip } from "@/lib/api";
 import { type Trip } from "@/lib/types";
-import { Download, Play, Square } from "lucide-react";
+import { Download, Play, Square, Info, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { generateCsvData } from "@/lib/utils";
+import { generateCsvData, formatMileage } from "@/lib/utils";
 import EndTripDialog from "./EndTripDialog";
+import { format } from "date-fns";
 
 export default function QuickActions() {
   const { toast } = useToast();
@@ -25,6 +28,11 @@ export default function QuickActions() {
   });
 
   const inProgressTrip = trips?.find(trip => trip.status === "in_progress");
+  
+  // Get the last completed trip to suggest a start mileage
+  const lastCompletedTrip = trips
+    ?.filter(trip => trip.status === "completed" && trip.endMileage !== null)
+    .sort((a, b) => new Date(b.tripDate).getTime() - new Date(a.tripDate).getTime())[0];
 
   // Mutation for starting a new trip
   const startTripMutation = useMutation({
@@ -32,10 +40,6 @@ export default function QuickActions() {
       if (!auth.currentUser?.uid) throw new Error("No user ID");
       
       // Get the last completed trip to use its end mileage as the new start mileage
-      const lastCompletedTrip = trips
-        ?.filter(trip => trip.status === "completed" && trip.endMileage !== null)
-        .sort((a, b) => new Date(b.tripDate).getTime() - new Date(a.tripDate).getTime())[0];
-      
       const startMileage = lastCompletedTrip?.endMileage || 0;
       
       return createTrip({
@@ -92,45 +96,121 @@ export default function QuickActions() {
     });
   };
 
+  // Calculate time elapsed for in-progress trip
+  const getTimeElapsed = () => {
+    if (!inProgressTrip?.tripDate) return null;
+    
+    const startDate = new Date(inProgressTrip.tripDate);
+    const now = new Date();
+    const diffMs = now.getTime() - startDate.getTime();
+    
+    // If less than a day, show hours
+    if (diffMs < 86400000) {
+      const hours = Math.floor(diffMs / 3600000);
+      return hours === 1 ? "1 hour" : `${hours} hours`;
+    }
+    
+    // Otherwise show days
+    const days = Math.floor(diffMs / 86400000);
+    return days === 1 ? "1 day" : `${days} days`;
+  };
+
+  const timeElapsed = getTimeElapsed();
+
   return (
-    <>
-      <div className="p-4 flex flex-col gap-2">
+    <div className="p-4 space-y-4">
+      {/* Current Trip Status */}
+      {inProgressTrip && (
+        <Card className="bg-amber-50 border-amber-200 mb-4">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center">
+                <Clock className="h-4 w-4 text-amber-500 mr-2" />
+                <span className="font-medium text-amber-700">Trip in Progress</span>
+              </div>
+              <Badge variant="outline" className="text-amber-600 border-amber-300">
+                {timeElapsed ? `${timeElapsed} ago` : "Just started"}
+              </Badge>
+            </div>
+            <div className="text-sm text-amber-700">
+              <div className="flex items-center justify-between">
+                <span>Start: {formatMileage(Number(inProgressTrip.startMileage))} miles</span>
+                <span>{format(new Date(inProgressTrip.tripDate), "MMM d, h:mm a")}</span>
+              </div>
+              <div className="mt-1">Purpose: {inProgressTrip.purpose}</div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Quick Action Buttons */}
+      <div className="grid gap-3">
         <Button 
-          className="w-full justify-start" 
-          variant="outline"
+          className="w-full flex justify-between" 
+          variant={inProgressTrip ? "outline" : "default"}
           onClick={() => startTripMutation.mutate()}
           disabled={isLoading || startTripMutation.isPending || !!inProgressTrip}
         >
-          <Play className="h-4 w-4 mr-2" />
-          Start New Trip
+          <div className="flex items-center">
+            <Play className="h-4 w-4 mr-2" />
+            Start New Trip
+          </div>
+          {lastCompletedTrip && !inProgressTrip && (
+            <Badge variant="outline">
+              Start: {formatMileage(Number(lastCompletedTrip.endMileage))}
+            </Badge>
+          )}
         </Button>
         
         <Button 
-          className="w-full justify-start" 
-          variant="outline"
+          className="w-full flex justify-between" 
+          variant={!inProgressTrip ? "outline" : "default"}
           onClick={() => setShowEndTripDialog(true)}
           disabled={isLoading || !inProgressTrip}
         >
-          <Square className="h-4 w-4 mr-2" />
-          End Current Trip
+          <div className="flex items-center">
+            <Square className="h-4 w-4 mr-2" />
+            End Current Trip
+          </div>
+          {inProgressTrip && (
+            <Badge variant="outline">
+              From: {formatMileage(Number(inProgressTrip.startMileage))}
+            </Badge>
+          )}
         </Button>
         
         <Button 
-          className="w-full justify-start" 
+          className="w-full flex justify-between" 
           variant="outline"
           onClick={handleExport}
           disabled={isLoading || !trips?.length}
         >
-          <Download className="h-4 w-4 mr-2" />
-          Export Reports
+          <div className="flex items-center">
+            <Download className="h-4 w-4 mr-2" />
+            Export Reports
+          </div>
+          {trips && trips.length > 0 && (
+            <Badge variant="outline">
+              {trips.length} trips
+            </Badge>
+          )}
         </Button>
       </div>
       
+      {/* Empty state message */}
+      {!isLoading && trips?.length === 0 && (
+        <div className="flex items-center justify-center p-4 text-sm text-muted-foreground">
+          <Info className="h-4 w-4 mr-2" />
+          No trips recorded yet. Start by logging your first trip.
+        </div>
+      )}
+      
+      {/* End Trip Dialog */}
       <EndTripDialog 
         open={showEndTripDialog} 
         onOpenChange={setShowEndTripDialog} 
         currentTrip={inProgressTrip || null} 
       />
-    </>
+    </div>
   );
 } 

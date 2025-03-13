@@ -52,7 +52,7 @@ export default function Dashboard() {
             <TaxDeductionSummary />
             
             <DashboardCard 
-              title="Quick Actions" 
+              title="Trip Management" 
               icon={<Car />}
             >
               <QuickActions />
