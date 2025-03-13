@@ -26,23 +26,16 @@ const db = admin.firestore();
 // });
 
 // Get all trips for a user
-export const getTrips = functions.https.onRequest(async (req, res) => {
-  // Enable CORS
-  res.set("Access-Control-Allow-Origin", "*");
-
-  if (req.method === "OPTIONS") {
-    // Send response to OPTIONS requests
-    res.set("Access-Control-Allow-Methods", "GET");
-    res.set("Access-Control-Allow-Headers", "Content-Type");
-    res.status(204).send("");
-    return;
-  }
-
+export const getTrips = functions.https.onCall(async (data, context) => {
   try {
-    const userId = req.query.userId as string;
+    // Ensure user is authenticated
+    if (!context.auth) {
+      throw new Error("Authentication required");
+    }
+
+    const userId = data.userId;
     if (!userId) {
-      res.status(400).json({message: "userId is required"});
-      return;
+      throw new Error("userId is required");
     }
 
     // Query Firestore for trips
@@ -61,28 +54,25 @@ export const getTrips = functions.https.onRequest(async (req, res) => {
       };
     });
 
-    res.json(trips);
+    return trips;
   } catch (error) {
     console.error("Error fetching trips:", error);
-    res.status(500).json({message: "Failed to fetch trips"});
+    throw new functions.https.HttpsError(
+      "internal",
+      error instanceof Error ? error.message : "Failed to fetch trips"
+    );
   }
 });
 
 // Create a new trip
-export const createTrip = functions.https.onRequest(async (req, res) => {
-  // Enable CORS
-  res.set("Access-Control-Allow-Origin", "*");
-
-  if (req.method === "OPTIONS") {
-    // Send response to OPTIONS requests
-    res.set("Access-Control-Allow-Methods", "POST");
-    res.set("Access-Control-Allow-Headers", "Content-Type");
-    res.status(204).send("");
-    return;
-  }
-
+export const createTrip = functions.https.onCall(async (data, context) => {
   try {
-    const tripData = insertTripSchema.parse(req.body);
+    // Ensure user is authenticated
+    if (!context.auth) {
+      throw new Error("Authentication required");
+    }
+
+    const tripData = insertTripSchema.parse(data);
 
     // Add timestamp
     const tripWithTimestamp = {
@@ -95,23 +85,24 @@ export const createTrip = functions.https.onRequest(async (req, res) => {
 
     // Get the created trip
     const doc = await docRef.get();
-    const data = doc.data();
-    if (!data) {
+    const createdData = doc.data();
+    if (!createdData) {
       throw new Error("Failed to create trip");
     }
 
     const trip = {
       id: (await db.collection("trips").count().get()).data().count + 1,
-      ...data,
-      tripDate: data.tripDate?.toDate() || new Date(),
-      createdAt: data.createdAt?.toDate() || new Date(),
+      ...createdData,
+      tripDate: createdData.tripDate?.toDate() || new Date(),
+      createdAt: createdData.createdAt?.toDate() || new Date(),
     };
 
-    res.status(201).json(trip);
+    return trip;
   } catch (error) {
     console.error("Error creating trip:", error);
-    res.status(400).json({
-      message: error instanceof Error ? error.message : "Invalid trip data",
-    });
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      error instanceof Error ? error.message : "Invalid trip data"
+    );
   }
 });

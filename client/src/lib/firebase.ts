@@ -1,4 +1,3 @@
-
 // Add this function at the top of your file
 export const debugGoogleAuthConfig = () => {
   const provider = new GoogleAuthProvider();
@@ -12,8 +11,9 @@ export const debugGoogleAuthConfig = () => {
 };
 
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, connectAuthEmulator } from "firebase/auth";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -27,6 +27,17 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const firestore = getFirestore(app);
+export const functions = getFunctions(app);
+
+// Connect to emulators in development
+if (import.meta.env.DEV) {
+  connectAuthEmulator(auth, "http://localhost:9099");
+  connectFirestoreEmulator(firestore, "localhost", 8080);
+  connectFunctionsEmulator(functions, "localhost", 5001);
+  
+  console.log("Connected to Firebase emulators");
+}
+
 export { signInWithEmailAndPassword, createUserWithEmailAndPassword };
 
 // Email/Password authentication functions
@@ -34,15 +45,17 @@ export const signUpWithEmail = async (email: string, password: string) => {
   try {
     const result = await createUserWithEmailAndPassword(auth, email, password);
     return result.user;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Email signup error:", error);
-    if (error.code === 'auth/email-already-in-use') {
-      throw new Error("Email already in use. Try logging in instead.");
-    } else if (error.code === 'auth/weak-password') {
-      throw new Error("Password is too weak. Please use a stronger password.");
-    } else {
+    if (error instanceof Error) {
+      if (error.message.includes('auth/email-already-in-use')) {
+        throw new Error("Email already in use. Try logging in instead.");
+      } else if (error.message.includes('auth/weak-password')) {
+        throw new Error("Password is too weak. Please use a stronger password.");
+      }
       throw new Error(`Failed to sign up: ${error.message}`);
     }
+    throw new Error("An unknown error occurred during sign up");
   }
 };
 
@@ -63,9 +76,12 @@ export const signInWithEmail = async (email: string, password: string) => {
 export const signOutUser = async () => {
   try {
     await signOut(auth);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Sign out error:", error);
-    throw new Error(`Failed to sign out: ${error.message}`);
+    if (error instanceof Error) {
+      throw new Error(`Failed to sign out: ${error.message}`);
+    }
+    throw new Error("An unknown error occurred during sign out");
   }
 };
 
