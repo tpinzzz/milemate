@@ -2,9 +2,12 @@ import {z} from "zod";
 
 export const insertTripSchema = z.object({
   userId: z.string(),
-  startMileage: z.string(),
-  endMileage: z.string().nullable(),
-  tripDate: z.date(),
+  startMileage: z.union([z.string(), z.number()]),
+  endMileage: z.union([z.string(), z.number(), z.null()]),
+  tripDate: z.union([
+    z.string().transform(val => new Date(val)),
+    z.date()
+  ]),
   purpose: z.enum(["Business", "Personal"] as const),
   status: z.enum(["in_progress", "completed"] as const),
 });

@@ -24,10 +24,13 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
+console.log("Firebase config:", firebaseConfig);
+
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const firestore = getFirestore(app);
-export const functions = getFunctions(app);
+// Use the project ID from the error messages
+export const functions = getFunctions(app, "us-central1");
 
 // Connect to emulators in development
 if (import.meta.env.DEV) {
