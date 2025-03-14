@@ -118,8 +118,48 @@ exports.createTripHttp = functions.https.onRequest((request, response) => {
         
         const tripData = insertTripSchema.parse(request.body);
         console.log("Parsed trip data:", tripData);
+
+        // If this is completing a trip, find and update the existing in-progress trip
+        if (tripData.status === 'completed') {
+          console.log("Completing trip - searching for in-progress trip");
+          const tripsSnapshot = await db.collection("trips")
+            .where("userId", "==", tripData.userId)
+            .where("status", "==", "in_progress")
+            .where("startMileage", "==", tripData.startMileage)
+            .where("tripDate", "==", tripData.tripDate)
+            .get();
+
+          if (!tripsSnapshot.empty) {
+            const tripDoc = tripsSnapshot.docs[0];
+            console.log("Found in-progress trip to update:", tripDoc.id);
+            await tripDoc.ref.update({
+              ...tripData,
+              updatedAt: new Date()
+            });
+
+            const updatedDoc = await tripDoc.ref.get();
+            const updatedData = updatedDoc.data();
+            if (!updatedData) {
+              throw new Error("Failed to get updated trip data");
+            }
+
+            const trip = {
+              id: (await db.collection("trips").count().get()).data().count,
+              ...updatedData,
+              tripDate: updatedData.tripDate instanceof Date ? updatedData.tripDate : new Date(updatedData.tripDate),
+              createdAt: updatedData.createdAt instanceof Date ? updatedData.createdAt : new Date(updatedData.createdAt),
+              updatedAt: updatedData.updatedAt instanceof Date ? updatedData.updatedAt : new Date(updatedData.updatedAt),
+            };
+
+            console.log("Trip updated successfully:", trip);
+            response.status(200).json(trip);
+            return;
+          } else {
+            console.log("No matching in-progress trip found, creating new completed trip");
+          }
+        }
         
-        // Create trip in Firestore with current timestamp
+        // Create new trip in Firestore with current timestamp
         const docRef = await db.collection("trips").add({
           ...tripData,
           createdAt: new Date() // Use JavaScript Date instead of Firestore timestamp

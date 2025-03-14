@@ -1,28 +1,32 @@
 import { useState, useEffect } from "react";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { auth } from "@/lib/firebase";
-import { getTrips, createTrip } from "@/lib/api";
-import { type Trip } from "@/lib/types";
-import { Download, Play, Square, Info, Clock } from "lucide-react";
+import { getTrips } from "@/lib/api";
+import { type Trip, type TripPurpose } from "@/lib/types";
+import { Download, Play, Square, Info, Clock, Briefcase, Car } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateCsvData, formatMileage } from "@/lib/utils";
 import EndTripDialog from "./EndTripDialog";
+import StartTripDialog from "./StartTripDialog";
 import { format } from "date-fns";
 
 export default function QuickActions() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showEndTripDialog, setShowEndTripDialog] = useState(false);
+  const [showStartTripDialog, setShowStartTripDialog] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  const [tripPurpose, setTripPurpose] = useState<TripPurpose>("Business");
 
   // Query for any in-progress trip for the current user
   const { data: trips, isLoading, refetch } = useQuery<Trip[]>({
     queryKey: ["trips", auth.currentUser?.uid],
     queryFn: async () => {
       if (!auth.currentUser?.uid) throw new Error("No user ID");
+      console.log("Fetching trips for user:", auth.currentUser?.uid);
       const result = await getTrips(auth.currentUser.uid);
       console.log("Fetched trips:", result);
       return result;
@@ -32,63 +36,35 @@ export default function QuickActions() {
 
   // Force a refetch when the component mounts
   useEffect(() => {
+    console.log("Component mounted, forcing refetch");
     refetch();
   }, [refetch]);
 
   // Find in-progress trip
   const inProgressTrip = trips?.find(trip => trip.status === "in_progress");
   
-  // Log debug info
-  useEffect(() => {
-    if (trips) {
-      setDebugInfo(`Found ${trips.length} trips, ${inProgressTrip ? "has" : "no"} in-progress trip`);
-      console.log("Trips:", trips);
-      console.log("In-progress trip:", inProgressTrip);
-    }
-  }, [trips, inProgressTrip]);
-  
   // Get the last completed trip to suggest a start mileage
   const lastCompletedTrip = trips
     ?.filter(trip => trip.status === "completed" && trip.endMileage !== null)
     .sort((a, b) => new Date(b.tripDate).getTime() - new Date(a.tripDate).getTime())[0];
 
-  // Mutation for starting a new trip
-  const startTripMutation = useMutation({
-    mutationFn: async () => {
-      if (!auth.currentUser?.uid) throw new Error("No user ID");
-      
-      // Get the last completed trip to use its end mileage as the new start mileage
-      const startMileage = lastCompletedTrip?.endMileage || 0;
-      
-      console.log("Starting trip with mileage:", startMileage);
-      
-      return createTrip({
-        userId: auth.currentUser.uid,
-        startMileage: startMileage,
-        endMileage: null,
-        tripDate: new Date(),
-        purpose: "Business",
-        status: "in_progress",
-      });
-    },
-    onSuccess: () => {
-      console.log("Trip started successfully");
-      queryClient.invalidateQueries({ queryKey: ["trips"] });
-      refetch(); // Force a refetch
-      toast({
-        title: "Trip Started",
-        description: "Your trip has been started. Don't forget to end it later!",
-      });
-    },
-    onError: (error) => {
-      console.error("Error starting trip:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to start trip",
-        variant: "destructive",
-      });
-    },
-  });
+  // Log debug info with more details
+  useEffect(() => {
+    const debugMessage = `
+      Loading: ${isLoading}
+      Trips count: ${trips?.length ?? 'no trips'}
+      In-progress: ${inProgressTrip ? 'yes' : 'no'}
+      Button disabled: ${isLoading || !!inProgressTrip}
+    `.trim();
+    
+    setDebugInfo(debugMessage);
+    console.log("Debug state:", {
+      isLoading,
+      tripsCount: trips?.length,
+      hasInProgressTrip: !!inProgressTrip,
+      buttonDisabled: isLoading || !!inProgressTrip
+    });
+  }, [trips, inProgressTrip, isLoading]);
 
   // Function to export trips as CSV
   const handleExport = () => {
@@ -140,11 +116,6 @@ export default function QuickActions() {
 
   const timeElapsed = getTimeElapsed();
 
-  const handleStartTrip = () => {
-    console.log("Start trip button clicked");
-    startTripMutation.mutate();
-  };
-
   return (
     <div className="p-4 space-y-4">
       {/* Debug info - remove in production */}
@@ -178,21 +149,45 @@ export default function QuickActions() {
         </Card>
       )}
 
+      {/* Trip Purpose Selection */}
+      {!inProgressTrip && (
+        <div className="flex gap-2 justify-center mb-2">
+          <Button
+            size="sm"
+            variant={tripPurpose === "Business" ? "default" : "outline"}
+            onClick={() => setTripPurpose("Business")}
+            className={tripPurpose === "Business" ? "bg-blue-600 hover:bg-blue-700" : ""}
+          >
+            <Briefcase className="h-4 w-4 mr-2" />
+            Business
+          </Button>
+          <Button
+            size="sm"
+            variant={tripPurpose === "Personal" ? "default" : "outline"}
+            onClick={() => setTripPurpose("Personal")}
+            className={tripPurpose === "Personal" ? "bg-green-600 hover:bg-green-700" : ""}
+          >
+            <Car className="h-4 w-4 mr-2" />
+            Personal
+          </Button>
+        </div>
+      )}
+
       {/* Quick Action Buttons */}
       <div className="grid gap-3">
         <Button 
           className="w-full flex justify-between" 
           variant={inProgressTrip ? "outline" : "default"}
-          onClick={handleStartTrip}
-          disabled={isLoading || startTripMutation.isPending || !!inProgressTrip}
+          onClick={() => setShowStartTripDialog(true)}
+          disabled={isLoading || !!inProgressTrip}
         >
           <div className="flex items-center">
             <Play className="h-4 w-4 mr-2" />
-            Start New Trip
+            Start New {tripPurpose} Trip
           </div>
           {lastCompletedTrip && !inProgressTrip && (
             <Badge variant="outline">
-              Start: {formatMileage(Number(lastCompletedTrip.endMileage))}
+              Suggested: {formatMileage(Number(lastCompletedTrip.endMileage))}
             </Badge>
           )}
         </Button>
@@ -239,6 +234,15 @@ export default function QuickActions() {
           No trips recorded yet. Start by logging your first trip.
         </div>
       )}
+      
+      {/* Start Trip Dialog */}
+      <StartTripDialog
+        open={showStartTripDialog}
+        onOpenChange={setShowStartTripDialog}
+        suggestedStartMileage={lastCompletedTrip?.endMileage || 0}
+        purpose={tripPurpose}
+        onSuccess={() => refetch()}
+      />
       
       {/* End Trip Dialog */}
       <EndTripDialog 
