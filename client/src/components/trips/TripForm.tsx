@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn, calculateTripDetails, formatMileage } from "@/lib/utils";
@@ -21,7 +20,7 @@ export default function TripForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Query for any in-progress trip for the current user
+  // Query for trips to get the latest mileage
   const { data: trips } = useQuery<Trip[]>({
     queryKey: ["trips", auth.currentUser?.uid],
     queryFn: async () => {
@@ -31,60 +30,64 @@ export default function TripForm() {
     enabled: !!auth.currentUser?.uid,
   });
 
-  const inProgressTrip = trips?.find(trip => trip.status === "in_progress");
+  // Get the last completed trip to suggest a start mileage
+  const lastCompletedTrip = trips
+    ?.filter(trip => trip.status === "completed" && trip.endMileage !== null)
+    .sort((a, b) => new Date(b.tripDate).getTime() - new Date(a.tripDate).getTime())[0];
+
+  // Convert to string for the form
+  const suggestedStartMileage = lastCompletedTrip?.endMileage !== null 
+    ? String(lastCompletedTrip?.endMileage) 
+    : "0";
 
   const form = useForm<InsertTrip>({
     resolver: zodResolver(insertTripSchema),
     defaultValues: {
-      startMileage: inProgressTrip?.startMileage || "0",
-      tripDate: inProgressTrip?.tripDate ? new Date(inProgressTrip.tripDate) : new Date(),
-      purpose: (inProgressTrip?.purpose || "Business") as "Business" | "Personal",
+      startMileage: suggestedStartMileage,
+      endMileage: "",
+      tripDate: new Date(),
+      purpose: "Business",
       userId: auth.currentUser?.uid || "",
-      status: inProgressTrip ? "completed" : "in_progress",
+      status: "completed", // Always completed
     },
   });
 
   const mutation = useMutation({
     mutationFn: async (data: InsertTrip) => {
-      return createTrip(data);
+      // Ensure status is always completed
+      return createTrip({
+        ...data,
+        status: "completed"
+      });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["trips"] });
 
-      // Show completion message with tax deduction if ending trip
-      if (variables.status === "completed" && variables.endMileage) {
-        const { miles, deduction } = calculateTripDetails(
-          Number(variables.startMileage),
-          Number(variables.endMileage)
-        );
+      // Show completion message with tax deduction
+      const { miles, deduction } = calculateTripDetails(
+        Number(variables.startMileage),
+        Number(variables.endMileage)
+      );
 
-        toast({
-          title: "Trip Completed",
-          description: (
-            <div className="mt-2 space-y-2">
-              <p>Miles driven: {formatMileage(miles)}</p>
-              <p>Estimated tax deduction: ${deduction.toFixed(2)}</p>
-            </div>
-          ),
-        });
-      } else {
-        // Show message for starting trip
-        toast({
-          title: "Trip Started",
-          description: "Your trip has been started. Don't forget to end it later!",
-        });
-      }
+      toast({
+        title: "Trip Saved",
+        description: (
+          <div className="mt-2 space-y-2">
+            <p>Miles driven: {formatMileage(miles)}</p>
+            <p>Estimated tax deduction: ${deduction.toFixed(2)}</p>
+          </div>
+        ),
+      });
 
-      // Only reset form if completing the trip
-      if (variables.status === "completed") {
-        form.reset({
-          startMileage: "0",
-          tripDate: new Date(),
-          purpose: "Business",
-          userId: auth.currentUser?.uid || "",
-          status: "in_progress",
-        });
-      }
+      // Reset form with the new end mileage as the suggested start mileage
+      form.reset({
+        startMileage: String(variables.endMileage),
+        endMileage: "",
+        tripDate: new Date(),
+        purpose: "Business",
+        userId: auth.currentUser?.uid || "",
+        status: "completed",
+      });
     },
     onError: (error) => {
       toast({
@@ -96,138 +99,136 @@ export default function TripForm() {
   });
 
   const onSubmit = (data: InsertTrip) => {
+    // Validate that end mileage is greater than start mileage
+    const startMileage = Number(data.startMileage);
+    const endMileage = Number(data.endMileage);
+    
+    if (endMileage <= startMileage) {
+      form.setError("endMileage", { 
+        type: "manual", 
+        message: "End mileage must be greater than start mileage" 
+      });
+      return;
+    }
+    
     mutation.mutate(data);
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="startMileage"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Start Mileage</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  {...field}
-                  value={field.value || ""}
-                  onChange={(e) => field.onChange(e.target.value)}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="endMileage"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>End Mileage</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  {...field}
-                  value={field.value || ""}
-                  onChange={(e) => field.onChange(e.target.value)}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="tripDate"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Trip Date</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-[240px] pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) =>
-                      date > new Date() || date < new Date("1900-01-01")
-                    }
-                    initialFocus
+        <div className="grid gap-4 md:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="startMileage"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Start Mileage</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    {...field}
+                    value={field.value || ""}
+                    onChange={(e) => field.onChange(e.target.value)}
                   />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="purpose"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Trip Purpose</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a purpose" />
-                  </SelectTrigger>
                 </FormControl>
-                <SelectContent>
-                  <SelectItem value="Business">Business</SelectItem>
-                  <SelectItem value="Personal">Personal</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Trip Status</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+          <FormField
+            control={form.control}
+            name="endMileage"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>End Mileage</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a status" />
-                  </SelectTrigger>
+                  <Input
+                    type="number"
+                    {...field}
+                    value={field.value || ""}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    required
+                  />
                 </FormControl>
-                <SelectContent>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-        <Button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? "Saving..." : "Save Trip"}
+        <div className="grid gap-4 md:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="tripDate"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Trip Date</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={(date) =>
+                        date > new Date() || date < new Date("1900-01-01")
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="purpose"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Trip Purpose</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a purpose" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="Business">Business</SelectItem>
+                    <SelectItem value="Personal">Personal</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        {/* Hidden status field - always completed */}
+        <input type="hidden" {...form.register("status")} value="completed" />
+
+        <Button type="submit" disabled={mutation.isPending} className="w-full">
+          {mutation.isPending ? "Saving..." : "Save Completed Trip"}
         </Button>
       </form>
     </Form>
