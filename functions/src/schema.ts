@@ -2,8 +2,8 @@ import {z} from "zod";
 
 export const insertTripSchema = z.object({
   userId: z.string(),
-  startMileage: z.union([z.string(), z.number()]),
-  endMileage: z.union([z.string(), z.number(), z.null()]),
+  startMileage: z.number(),
+  endMileage: z.number().nullable(),
   tripDate: z.union([
     z.string().transform(val => new Date(val)),
     z.date()
