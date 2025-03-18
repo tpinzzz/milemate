@@ -69,7 +69,7 @@ exports.getTripsHttp = functions.https.onRequest((request, response) => {
       const trips = tripsSnapshot.docs.map((doc, index) => {
         const data = doc.data();
         return {
-          id: index + 1, // Generate numeric IDs
+          id: doc.id, // Use document ID instead of index+1
           ...data,
           tripDate: data.tripDate?.toDate() || new Date(),
           createdAt: data.createdAt?.toDate() || new Date(),
@@ -144,7 +144,7 @@ exports.createTripHttp = functions.https.onRequest((request, response) => {
             }
 
             const trip = {
-              id: (await db.collection("trips").count().get()).data().count,
+              id: tripDoc.id, // use firestores auto generated doc id
               ...updatedData,
               tripDate: updatedData.tripDate instanceof Date ? updatedData.tripDate : new Date(updatedData.tripDate),
               createdAt: updatedData.createdAt instanceof Date ? updatedData.createdAt : new Date(updatedData.createdAt),
@@ -175,7 +175,7 @@ exports.createTripHttp = functions.https.onRequest((request, response) => {
         }
 
         const trip = {
-          id: (await db.collection("trips").count().get()).data().count + 1,
+          id: doc.id, //use Firestore's auto=generated document ID
           ...createdData,
           tripDate: createdData.tripDate instanceof Date ? createdData.tripDate : new Date(createdData.tripDate),
           createdAt: createdData.createdAt instanceof Date ? createdData.createdAt : new Date(createdData.createdAt),
