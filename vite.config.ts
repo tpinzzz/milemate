@@ -29,6 +29,7 @@ export default defineConfig({
     },
   },
   root: path.resolve(__dirname, "client"),
+  envDir: path.resolve(__dirname), // Points to project root for env files
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
