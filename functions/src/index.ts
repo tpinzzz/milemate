@@ -28,12 +28,12 @@ const db = admin.firestore();
 // });
 
 // Initialize cors middleware
-const corsHandler = cors({ origin: true });
+const corsHandler = cors({origin: true});
 
 // Test function to verify CORS is working
 exports.testCors = functions.https.onRequest((request, response) => {
   corsHandler(request, response, () => {
-    response.status(200).json({ message: "CORS is working correctly!" });
+    response.status(200).json({message: "CORS is working correctly!"});
   });
 });
 
@@ -47,8 +47,8 @@ exports.apiFunction = functions.https.onRequest((request, response) => {
 exports.getTripsHttp = functions.https.onRequest((request, response) => {
   corsHandler(request, response, async () => {
     try {
-      if (request.method !== 'POST') {
-        response.status(405).send('Method Not Allowed');
+      if (request.method !== "POST") {
+        response.status(405).send("Method Not Allowed");
         return;
       }
 
@@ -56,7 +56,7 @@ exports.getTripsHttp = functions.https.onRequest((request, response) => {
 
       const userId = request.body.userId;
       if (!userId) {
-        response.status(400).send('userId is required');
+        response.status(400).send("userId is required");
         return;
       }
 
@@ -80,7 +80,7 @@ exports.getTripsHttp = functions.https.onRequest((request, response) => {
       response.status(200).json(trips);
     } catch (error) {
       console.error("Error fetching trips:", error);
-      response.status(500).send('Internal Server Error');
+      response.status(500).send("Internal Server Error");
     }
   });
 });
@@ -88,39 +88,39 @@ exports.getTripsHttp = functions.https.onRequest((request, response) => {
 // Create a new trip
 exports.createTripHttp = functions.https.onRequest((request, response) => {
   console.log("createTripHttp called with method:", request.method);
-  
+
   // Log headers for debugging
   console.log("Request headers:", request.headers);
-  
+
   corsHandler(request, response, async () => {
     try {
-      if (request.method !== 'POST') {
+      if (request.method !== "POST") {
         console.log("Method not allowed:", request.method);
-        response.status(405).send('Method Not Allowed');
+        response.status(405).send("Method Not Allowed");
         return;
       }
 
       console.log("Received request body:", JSON.stringify(request.body));
-      
+
       try {
         // Check if request.body is empty or undefined
         if (!request.body || Object.keys(request.body).length === 0) {
           console.log("Request body is empty or undefined");
-          response.status(400).send('Request body is required');
+          response.status(400).send("Request body is required");
           return;
         }
-        
+
         // Check if tripDate is a string and needs to be converted to a Date
-        if (request.body.tripDate && typeof request.body.tripDate === 'string') {
+        if (request.body.tripDate && typeof request.body.tripDate === "string") {
           console.log("Converting tripDate from string to Date");
           request.body.tripDate = new Date(request.body.tripDate);
         }
-        
+
         const tripData = insertTripSchema.parse(request.body);
         console.log("Parsed trip data:", tripData);
 
         // If this is completing a trip, find and update the existing in-progress trip
-        if (tripData.status === 'completed') {
+        if (tripData.status === "completed") {
           console.log("Completing trip - searching for in-progress trip");
           const tripsSnapshot = await db.collection("trips")
             .where("userId", "==", tripData.userId)
@@ -134,7 +134,7 @@ exports.createTripHttp = functions.https.onRequest((request, response) => {
             console.log("Found in-progress trip to update:", tripDoc.id);
             await tripDoc.ref.update({
               ...tripData,
-              updatedAt: new Date()
+              updatedAt: new Date(),
             });
 
             const updatedDoc = await tripDoc.ref.get();
@@ -158,11 +158,11 @@ exports.createTripHttp = functions.https.onRequest((request, response) => {
             console.log("No matching in-progress trip found, creating new completed trip");
           }
         }
-        
+
         // Create new trip in Firestore with current timestamp
         const docRef = await db.collection("trips").add({
           ...tripData,
-          createdAt: new Date() // Use JavaScript Date instead of Firestore timestamp
+          createdAt: new Date(), // Use JavaScript Date instead of Firestore timestamp
         });
 
         // Get the created trip
@@ -170,12 +170,12 @@ exports.createTripHttp = functions.https.onRequest((request, response) => {
         const createdData = doc.data();
         if (!createdData) {
           console.log("Failed to create trip: No data returned");
-          response.status(500).send('Failed to create trip');
+          response.status(500).send("Failed to create trip");
           return;
         }
 
         const trip = {
-          id: doc.id, //use Firestore's auto=generated document ID
+          id: doc.id, // use Firestore's auto=generated document ID
           ...createdData,
           tripDate: createdData.tripDate instanceof Date ? createdData.tripDate : new Date(createdData.tripDate),
           createdAt: createdData.createdAt instanceof Date ? createdData.createdAt : new Date(createdData.createdAt),
@@ -185,11 +185,11 @@ exports.createTripHttp = functions.https.onRequest((request, response) => {
         response.status(201).json(trip);
       } catch (parseError) {
         console.error("Schema validation error:", parseError);
-        response.status(400).send(parseError instanceof Error ? parseError.message : 'Invalid trip data format');
+        response.status(400).send(parseError instanceof Error ? parseError.message : "Invalid trip data format");
       }
     } catch (error) {
       console.error("Error creating trip:", error);
-      response.status(500).send(error instanceof Error ? error.message : 'Internal server error');
+      response.status(500).send(error instanceof Error ? error.message : "Internal server error");
     }
   });
 });
