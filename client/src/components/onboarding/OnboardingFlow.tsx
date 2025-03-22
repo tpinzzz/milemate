@@ -45,25 +45,17 @@ export default function OnboardingFlow() {
       }
       
       await completeOnboarding();
-      console.log('Onboarding completed in Firebase, waiting for state update...');
+      console.log('Onboarding completed, navigating to dashboard...');
       
       // Close the dialog first
       setShowOnboarding(false);
       
-      // Clear any cached state
-      localStorage.clear();
-      sessionStorage.clear();
-      
-      // Add a small delay to ensure Firebase state is updated
-      setTimeout(() => {
-        console.log('Initiating full page reload...');
-        // Force a complete page reload with cache busting
-        window.location.href = `/dashboard?t=${Date.now()}`;
-      }, 1000);
+      // Use window.location.href for a full page navigation
+      window.location.href = '/dashboard';
     } catch (error) {
       console.error('Error during onboarding completion:', error);
       // Still try to navigate even if there's an error
-      window.location.href = `/dashboard?t=${Date.now()}`;
+      window.location.href = '/dashboard';
     } finally {
       setIsCompleting(false);
     }
