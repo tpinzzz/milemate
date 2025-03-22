@@ -21,8 +21,9 @@ const OnboardingStep = ({ title, children, icon }: OnboardingStepProps) => (
 );
 
 export default function OnboardingFlow() {
-  const { completeOnboarding } = useOnboarding();
+  const { completeOnboarding, setShowOnboarding } = useOnboarding();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isCompleting, setIsCompleting] = useState(false);
   const totalSteps = 4;
   const [, setLocation] = useLocation();
 
@@ -32,9 +33,52 @@ export default function OnboardingFlow() {
     }
   };
 
-  const handleComplete = () => {
-    completeOnboarding();
-    setLocation("/dashboard");
+  const handleComplete = async () => {
+    if (isCompleting) {
+      console.log('Already completing onboarding, returning early');
+      return;
+    }
+    
+    console.log('=== Starting Onboarding Completion ===');
+    console.log('1. Setting isCompleting state to true');
+    setIsCompleting(true);
+    
+    try {
+      console.log('2. Checking completeOnboarding function');
+      if (!completeOnboarding) {
+        console.error('completeOnboarding function is not defined');
+        return;
+      }
+      
+      console.log('3. Calling completeOnboarding function');
+      await completeOnboarding();
+      console.log('4. completeOnboarding completed successfully');
+      
+      console.log('5. Closing onboarding dialog');
+      setShowOnboarding(false);
+      
+      // Use both navigation methods with a small delay
+      console.log('6. Attempting navigation to dashboard');
+      setTimeout(() => {
+        console.log('7. Delayed navigation attempt');
+        // Try router navigation first
+        setLocation('/dashboard');
+        // Fallback to window.location if router navigation doesn't work
+        setTimeout(() => {
+          console.log('8. Fallback navigation attempt');
+          window.location.href = '/dashboard';
+        }, 100);
+      }, 100);
+    } catch (error) {
+      console.error('Error during onboarding completion:', error);
+      console.log('Attempting fallback navigation to dashboard');
+      window.location.href = '/dashboard';
+      setShowOnboarding(false);
+    } finally {
+      console.log('9. Setting isCompleting back to false');
+      setIsCompleting(false);
+      console.log('=== Onboarding Completion Process Finished ===');
+    }
   };
 
   return (
@@ -142,8 +186,12 @@ export default function OnboardingFlow() {
             Next
           </Button>
         ) : (
-          <Button onClick={handleComplete} className="w-full">
-            Get Started!
+          <Button 
+            onClick={handleComplete} 
+            className="w-full"
+            disabled={isCompleting}
+          >
+            {isCompleting ? "Completing..." : "Get Started!"}
           </Button>
         )}
       </div>
