@@ -21,8 +21,9 @@ const OnboardingStep = ({ title, children, icon }: OnboardingStepProps) => (
 );
 
 export default function OnboardingFlow() {
-  const { completeOnboarding } = useOnboarding();
+  const { completeOnboarding, setShowOnboarding } = useOnboarding();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isCompleting, setIsCompleting] = useState(false);
   const totalSteps = 4;
   const [, setLocation] = useLocation();
 
@@ -32,9 +33,32 @@ export default function OnboardingFlow() {
     }
   };
 
-  const handleComplete = () => {
-    completeOnboarding();
-    setLocation("/dashboard");
+  const handleComplete = async () => {
+    if (isCompleting) return;
+    setIsCompleting(true);
+    console.log('Starting onboarding completion...');
+    
+    try {
+      if (!completeOnboarding) {
+        console.error('completeOnboarding function is not defined');
+        return;
+      }
+      
+      await completeOnboarding();
+      console.log('Onboarding completed, navigating to dashboard...');
+      
+      // Close the dialog first
+      setShowOnboarding(false);
+      
+      // Use window.location.href for a full page navigation
+      window.location.href = '/dashboard';
+    } catch (error) {
+      console.error('Error during onboarding completion:', error);
+      // Still try to navigate even if there's an error
+      window.location.href = '/dashboard';
+    } finally {
+      setIsCompleting(false);
+    }
   };
 
   return (
@@ -142,8 +166,12 @@ export default function OnboardingFlow() {
             Next
           </Button>
         ) : (
-          <Button onClick={handleComplete} className="w-full">
-            Get Started!
+          <Button 
+            onClick={handleComplete} 
+            className="w-full"
+            disabled={isCompleting}
+          >
+            {isCompleting ? "Completing..." : "Get Started!"}
           </Button>
         )}
       </div>

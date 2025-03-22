@@ -23,9 +23,12 @@ export default function Dashboard() {
         onOpenChange={setShowOnboarding}
       >
         <DialogContent className="max-w-lg p-0">
-          <DialogHeader className="sr-only">
+          <DialogHeader>
             <DialogTitle>Welcome to Mileage Tracker</DialogTitle>
           </DialogHeader>
+          <div className="sr-only">
+            Complete these steps to get started with tracking your mileage
+          </div>
           <OnboardingFlow />
         </DialogContent>
       </Dialog>

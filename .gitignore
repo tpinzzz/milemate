@@ -7,3 +7,5 @@ vite.config.ts.*
 client/.env
 .breakpoints
 firebase-debug.log
+firestore-debug.log
+.firebase/
