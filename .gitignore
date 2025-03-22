@@ -6,4 +6,3 @@ vite.config.ts.*
 *.tar.gz
 client/.env
 .breakpoints
-firebase-debug.log
