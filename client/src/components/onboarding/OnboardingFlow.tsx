@@ -34,30 +34,50 @@ export default function OnboardingFlow() {
   };
 
   const handleComplete = async () => {
-    if (isCompleting) return;
+    if (isCompleting) {
+      console.log('Already completing onboarding, returning early');
+      return;
+    }
+    
+    console.log('=== Starting Onboarding Completion ===');
+    console.log('1. Setting isCompleting state to true');
     setIsCompleting(true);
-    console.log('Starting onboarding completion...');
     
     try {
+      console.log('2. Checking completeOnboarding function');
       if (!completeOnboarding) {
         console.error('completeOnboarding function is not defined');
         return;
       }
       
+      console.log('3. Calling completeOnboarding function');
       await completeOnboarding();
-      console.log('Onboarding completed, navigating to dashboard...');
+      console.log('4. completeOnboarding completed successfully');
       
-      // Close the dialog first
+      console.log('5. Closing onboarding dialog');
       setShowOnboarding(false);
       
-      // Use window.location.href for a full page navigation
-      window.location.href = '/dashboard';
+      // Use both navigation methods with a small delay
+      console.log('6. Attempting navigation to dashboard');
+      setTimeout(() => {
+        console.log('7. Delayed navigation attempt');
+        // Try router navigation first
+        setLocation('/dashboard');
+        // Fallback to window.location if router navigation doesn't work
+        setTimeout(() => {
+          console.log('8. Fallback navigation attempt');
+          window.location.href = '/dashboard';
+        }, 100);
+      }, 100);
     } catch (error) {
       console.error('Error during onboarding completion:', error);
-      // Still try to navigate even if there's an error
+      console.log('Attempting fallback navigation to dashboard');
       window.location.href = '/dashboard';
+      setShowOnboarding(false);
     } finally {
+      console.log('9. Setting isCompleting back to false');
       setIsCompleting(false);
+      console.log('=== Onboarding Completion Process Finished ===');
     }
   };
 
