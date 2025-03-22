@@ -15,13 +15,6 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, si
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 
-// Add this debug line
-console.log("ENV TEST:", {
-  apiKeyExists: !!import.meta.env.VITE_FIREBASE_API_KEY,
-  apiKeyValue: import.meta.env.VITE_FIREBASE_API_KEY ? import.meta.env.VITE_FIREBASE_API_KEY.substring(0, 5) + "..." : "undefined",
-  isDev: import.meta.env.DEV
-});
-
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -36,18 +29,16 @@ console.log("Firebase config:", firebaseConfig);
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const firestore = getFirestore(app);
+// Use the project ID from the error messages
 export const functions = getFunctions(app, "us-central1");
 
 // Connect to emulators in development
 if (import.meta.env.DEV) {
-  try {
-    connectAuthEmulator(auth, "http://localhost:9099", { disableWarnings: true });
-    connectFirestoreEmulator(firestore, "localhost", 8080);
-    connectFunctionsEmulator(functions, "localhost", 5001);
-    console.log("Successfully connected to Firebase emulators");
-  } catch (error) {
-    console.error("Error connecting to Firebase emulators:", error);
-  }
+  connectAuthEmulator(auth, "http://localhost:9099");
+  connectFirestoreEmulator(firestore, "localhost", 8080);
+  connectFunctionsEmulator(functions, "localhost", 5001);
+  
+  console.log("Connected to Firebase emulators");
 }
 
 export { signInWithEmailAndPassword, createUserWithEmailAndPassword };
