@@ -43,6 +43,15 @@
         "source": "**",
         "destination": "/index.html"
       }
-    ]
+    ],
+    "environment": {
+      "VITE_FIREBASE_API_KEY": "AIzaSyBPECg3EXSE17IXDa32OabYPVn6pOgzRtk",
+      "VITE_FIREBASE_AUTH_DOMAIN": "milemate-6cba7.firebaseapp.com",
+      "VITE_FIREBASE_PROJECT_ID": "milemate-6cba7",
+      "VITE_FIREBASE_STORAGE_BUCKET": "milemate-6cba7.firebasestorage.app",
+      "VITE_FIREBASE_MESSAGING_SENDER_ID": "868871659844",
+      "VITE_FIREBASE_APP_ID": "1:868871659844:web:75feba16eff6214043f711",
+      "VITE_FIREBASE_MEASUREMENT_ID": "G-623Q5DTB38"
+    }
   }
 }

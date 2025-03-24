@@ -10,38 +10,70 @@ export const debugGoogleAuthConfig = () => {
   };
 };
 
-import { initializeApp } from "firebase/app";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, connectAuthEmulator } from "firebase/auth";
-import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
-import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
+import { initializeApp, FirebaseApp } from "firebase/app";
+import { getAuth, Auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, connectAuthEmulator } from "firebase/auth";
+import { getFirestore, Firestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getFunctions, Functions, connectFunctionsEmulator } from "firebase/functions";
 
+// Debug environment variables
+console.log("Environment variables:", {
+  VITE_FIREBASE_API_KEY: import.meta.env.VITE_FIREBASE_API_KEY,
+  VITE_FIREBASE_AUTH_DOMAIN: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  VITE_FIREBASE_PROJECT_ID: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  VITE_FIREBASE_STORAGE_BUCKET: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  VITE_FIREBASE_MESSAGING_SENDER_ID: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  VITE_FIREBASE_APP_ID: import.meta.env.VITE_FIREBASE_APP_ID,
+  VITE_FIREBASE_MEASUREMENT_ID: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+  NODE_ENV: import.meta.env.MODE,
+  DEV: import.meta.env.DEV,
+  PROD: import.meta.env.PROD
+});
+
+// Define the Firebase configuration
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  apiKey: "AIzaSyBPECg3EXSE17IXDa32OabYPVn6pOgzRtk",
+  authDomain: "milemate-6cba7.firebaseapp.com",
+  projectId: "milemate-6cba7",
+  storageBucket: "milemate-6cba7.firebasestorage.app",
+  messagingSenderId: "868871659844",
+  appId: "1:868871659844:web:75feba16eff6214043f711",
+  measurementId: "G-623Q5DTB38"
 };
 
-console.log("Firebase config:", firebaseConfig);
+// Debug the configuration before initialization
+console.log("About to initialize Firebase with config:", JSON.stringify(firebaseConfig, null, 2));
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const firestore = getFirestore(app);
-// Use the project ID from the error messages
-export const functions = getFunctions(app, "us-central1");
+let app: FirebaseApp;
+let auth: Auth;
+let firestore: Firestore;
+let functions: Functions;
 
-// Connect to emulators in development
-if (import.meta.env.DEV) {
-  connectAuthEmulator(auth, "http://localhost:9099");
-  connectFirestoreEmulator(firestore, "localhost", 8080);
-  connectFunctionsEmulator(functions, "localhost", 5001);
+try {
+  app = initializeApp(firebaseConfig);
+  console.log("Firebase app initialized successfully");
   
-  console.log("Connected to Firebase emulators");
+  auth = getAuth(app);
+  console.log("Firebase auth initialized");
+  
+  firestore = getFirestore(app);
+  console.log("Firebase firestore initialized");
+  
+  functions = getFunctions(app, "us-central1");
+  console.log("Firebase functions initialized");
+  
+  // Connect to emulators in development
+  if (import.meta.env.DEV) {
+    connectAuthEmulator(auth, "http://localhost:9099");
+    connectFirestoreEmulator(firestore, "localhost", 8080);
+    connectFunctionsEmulator(functions, "localhost", 5001);
+    console.log("Connected to Firebase emulators");
+  }
+} catch (error) {
+  console.error("Error initializing Firebase:", error);
+  throw error;
 }
 
-export { signInWithEmailAndPassword, createUserWithEmailAndPassword };
+export { auth, firestore, functions, signInWithEmailAndPassword, createUserWithEmailAndPassword };
 
 // Email/Password authentication functions
 export const signUpWithEmail = async (email: string, password: string) => {
