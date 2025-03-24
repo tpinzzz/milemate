@@ -7,6 +7,7 @@ export function useOnboarding() {
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(() => {
     const stored = localStorage.getItem(`hasCompletedOnboarding_${user?.uid}`);
+    console.log('Initial onboarding state:', { stored, userId: user?.uid });
     return stored === 'true';
   });
 
@@ -14,6 +15,7 @@ export function useOnboarding() {
   useEffect(() => {
     if (user) {
       const stored = localStorage.getItem(`hasCompletedOnboarding_${user.uid}`);
+      console.log('User changed, updating onboarding state:', { stored, userId: user.uid });
       setHasCompletedOnboarding(stored === 'true');
       setShowOnboarding(stored !== 'true');
     }
@@ -21,9 +23,16 @@ export function useOnboarding() {
 
   const completeOnboarding = () => {
     if (user) {
+      console.log('Completing onboarding for user:', user.uid);
       localStorage.setItem(`hasCompletedOnboarding_${user.uid}`, 'true');
       setHasCompletedOnboarding(true);
       setShowOnboarding(false);
+      console.log('Onboarding state updated:', { 
+        hasCompletedOnboarding: true, 
+        showOnboarding: false 
+      });
+    } else {
+      console.error('No user found when trying to complete onboarding');
     }
   };
 
