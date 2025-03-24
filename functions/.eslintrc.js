@@ -29,5 +29,7 @@ module.exports = {
     "quotes": ["error", "double"],
     "import/no-unresolved": 0,
     "indent": ["error", 2],
+    "max-len": ["error", {"code": 150}], // Add this line for increased line length
+    "@typescript-eslint/no-unused-vars": "warn", // Add this line to downgrade unused vars
   },
 };

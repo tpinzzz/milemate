@@ -47,6 +47,13 @@ export default function StartTripDialog({
         throw new Error("Invalid mileage value");
       }
 
+      console.log("Starting trip with data:", {
+        userId: auth.currentUser.uid,
+        startMileage: startMileageNum,
+        purpose,
+        status: "in_progress"
+      });
+
       return createTrip({
         userId: auth.currentUser.uid,
         startMileage: startMileageNum,
@@ -57,6 +64,7 @@ export default function StartTripDialog({
       });
     },
     onSuccess: () => {
+      console.log("Trip started successfully");
       queryClient.invalidateQueries({ queryKey: ["trips"] });
       toast({
         title: "Trip Started",
@@ -66,10 +74,21 @@ export default function StartTripDialog({
       onOpenChange(false);
       onSuccess?.();
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
+      console.error("Failed to start trip:", error);
+      let errorMessage = "Failed to start trip";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null && 'status' in error) {
+        errorMessage = `Server error: ${(error as { status: number }).status}`;
+      } else if (!navigator.onLine) {
+        errorMessage = "No internet connection. Please check your network and try again.";
+      }
+      
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to start trip",
+        title: "Error Starting Trip",
+        description: errorMessage,
         variant: "destructive",
       });
     },
