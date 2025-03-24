@@ -3,7 +3,9 @@ import type { InsertTrip, Trip } from './types';
 import { functions } from './firebase';
 
 // Base URL for Firebase Functions
-const FUNCTIONS_BASE_URL = 'http://localhost:5001/milemate-6cba7/us-central1';
+const FUNCTIONS_BASE_URL = process.env.NODE_ENV === 'development'
+  ? 'http://localhost:5001/milemate-6cba7/us-central1'
+  : 'https://us-central1-milemate-6cba7.cloudfunctions.net';
 
 export const getTrips = async (userId: string): Promise<Trip[]> => {
   console.log("Calling getTrips with userId:", userId);

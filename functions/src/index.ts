@@ -66,7 +66,7 @@ exports.getTripsHttp = functions.https.onRequest((request, response) => {
         .orderBy("tripDate", "desc")
         .get();
 
-      const trips = tripsSnapshot.docs.map((doc, index) => {
+      const trips = tripsSnapshot.docs.map((doc) => {
         const data = doc.data();
         return {
           id: doc.id, // Use document ID instead of index+1

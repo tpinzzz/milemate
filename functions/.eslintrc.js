@@ -29,8 +29,8 @@ module.exports = {
     "quotes": ["error", "double"],
     "import/no-unresolved": 0,
     "indent": ["error", 2],
-    "object-curly-spacing": ["error", "never"],
-    "max-len": "off", // Temporarily disabled
-    "@typescript-eslint/no-unused-vars": ["warn"],
+    "max-len": ["error", {"code": 150}], // Add this line for increased line length
+    "@typescript-eslint/no-unused-vars": "warn", // Add this line to downgrade unused vars
+
   },
 };
