@@ -28,7 +28,12 @@ const db = admin.firestore();
 // });
 
 // Initialize cors middleware
-const corsHandler = cors({origin: true});
+const corsHandler = cors({
+  origin: true,
+  methods: ["POST", "GET", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+});
 
 // Test function to verify CORS is working
 exports.testCors = functions.https.onRequest((request, response) => {
@@ -88,81 +93,54 @@ exports.getTripsHttp = functions.https.onRequest((request, response) => {
 // Create a new trip
 exports.createTripHttp = functions.https.onRequest((request, response) => {
   console.log("createTripHttp called with method:", request.method);
-
-  // Log headers for debugging
+  console.log("Request origin:", request.headers.origin);
   console.log("Request headers:", request.headers);
 
   corsHandler(request, response, async () => {
     try {
       if (request.method !== "POST") {
         console.log("Method not allowed:", request.method);
-        response.status(405).send("Method Not Allowed");
+        response.status(405).json({error: "Method Not Allowed"});
         return;
       }
 
-      console.log("Received request body:", JSON.stringify(request.body));
+      console.log("Received request body:", JSON.stringify(request.body, null, 2));
+
+      // Check if request.body is empty or undefined
+      if (!request.body || Object.keys(request.body).length === 0) {
+        console.log("Request body is empty or undefined");
+        response.status(400).json({error: "Request body is required"});
+        return;
+      }
+
+      // Validate userId exists
+      if (!request.body.userId) {
+        console.log("Missing userId in request");
+        response.status(400).json({error: "userId is required"});
+        return;
+      }
+
+      // Convert string mileage values to numbers if needed
+      const processedBody = {
+        ...request.body,
+        startMileage: Number(request.body.startMileage),
+        endMileage: request.body.endMileage ? Number(request.body.endMileage) : null,
+      };
+
+      // Check if tripDate is a string and needs to be converted to a Date
+      if (processedBody.tripDate && typeof processedBody.tripDate === "string") {
+        console.log("Converting tripDate from string to Date");
+        processedBody.tripDate = new Date(processedBody.tripDate);
+      }
 
       try {
-        // Check if request.body is empty or undefined
-        if (!request.body || Object.keys(request.body).length === 0) {
-          console.log("Request body is empty or undefined");
-          response.status(400).send("Request body is required");
-          return;
-        }
-
-        // Check if tripDate is a string and needs to be converted to a Date
-        if (request.body.tripDate && typeof request.body.tripDate === "string") {
-          console.log("Converting tripDate from string to Date");
-          request.body.tripDate = new Date(request.body.tripDate);
-        }
-
-        const tripData = insertTripSchema.parse(request.body);
+        const tripData = insertTripSchema.parse(processedBody);
         console.log("Parsed trip data:", tripData);
-
-        // If this is completing a trip, find and update the existing in-progress trip
-        if (tripData.status === "completed") {
-          console.log("Completing trip - searching for in-progress trip");
-          const tripsSnapshot = await db.collection("trips")
-            .where("userId", "==", tripData.userId)
-            .where("status", "==", "in_progress")
-            .where("startMileage", "==", tripData.startMileage)
-            .where("tripDate", "==", tripData.tripDate)
-            .get();
-
-          if (!tripsSnapshot.empty) {
-            const tripDoc = tripsSnapshot.docs[0];
-            console.log("Found in-progress trip to update:", tripDoc.id);
-            await tripDoc.ref.update({
-              ...tripData,
-              updatedAt: new Date(),
-            });
-
-            const updatedDoc = await tripDoc.ref.get();
-            const updatedData = updatedDoc.data();
-            if (!updatedData) {
-              throw new Error("Failed to get updated trip data");
-            }
-
-            const trip = {
-              id: tripDoc.id, // use firestores auto generated doc id
-              ...updatedData,
-              tripDate: updatedData.tripDate instanceof Date ? updatedData.tripDate : new Date(updatedData.tripDate),
-              createdAt: updatedData.createdAt instanceof Date ? updatedData.createdAt : new Date(updatedData.createdAt),
-              updatedAt: updatedData.updatedAt instanceof Date ? updatedData.updatedAt : new Date(updatedData.updatedAt),
-            };
-
-            console.log("Trip updated successfully:", trip);
-            response.status(200).json(trip);
-            return;
-          } else {
-            console.log("No matching in-progress trip found, creating new completed trip");
-          }
-        }
 
         // Create new trip in Firestore with current timestamp
         const docRef = await db.collection("trips").add({
           ...tripData,
-          createdAt: new Date(), // Use JavaScript Date instead of Firestore timestamp
+          createdAt: new Date(),
         });
 
         // Get the created trip
@@ -170,12 +148,12 @@ exports.createTripHttp = functions.https.onRequest((request, response) => {
         const createdData = doc.data();
         if (!createdData) {
           console.log("Failed to create trip: No data returned");
-          response.status(500).send("Failed to create trip");
+          response.status(500).json({error: "Failed to create trip: No data returned"});
           return;
         }
 
         const trip = {
-          id: doc.id, // use Firestore's auto=generated document ID
+          id: doc.id,
           ...createdData,
           tripDate: createdData.tripDate instanceof Date ? createdData.tripDate : new Date(createdData.tripDate),
           createdAt: createdData.createdAt instanceof Date ? createdData.createdAt : new Date(createdData.createdAt),
@@ -185,11 +163,17 @@ exports.createTripHttp = functions.https.onRequest((request, response) => {
         response.status(201).json(trip);
       } catch (parseError) {
         console.error("Schema validation error:", parseError);
-        response.status(400).send(parseError instanceof Error ? parseError.message : "Invalid trip data format");
+        response.status(400).json({
+          error: "Invalid trip data format",
+          details: parseError instanceof Error ? parseError.message : "Unknown validation error",
+        });
       }
     } catch (error) {
       console.error("Error creating trip:", error);
-      response.status(500).send(error instanceof Error ? error.message : "Internal server error");
+      response.status(500).json({
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   });
 });

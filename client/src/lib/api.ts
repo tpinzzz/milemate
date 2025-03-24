@@ -44,15 +44,20 @@ export const createTrip = async (tripData: InsertTrip): Promise<Trip> => {
       body: JSON.stringify(tripData),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      console.error("Server error response:", data);
+      throw new Error(data.error || `HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json();
     console.log("createTrip result:", data);
     return data;
   } catch (error) {
     console.error("Error in createTrip:", error);
-    throw error;
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Failed to create trip");
   }
 }; 
